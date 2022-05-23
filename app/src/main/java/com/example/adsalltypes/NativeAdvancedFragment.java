@@ -1,0 +1,425 @@
+package com.example.adsalltypes;
+
+import android.os.Build;
+import android.os.Bundle;
+
+import androidx.fragment.app.Fragment;
+
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.RatingBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdLoader;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.VideoController;
+import com.google.android.gms.ads.VideoOptions;
+import com.google.android.gms.ads.doubleclick.PublisherAdRequest;
+import com.google.android.gms.ads.formats.MediaView;
+import com.google.android.gms.ads.formats.NativeAdOptions;
+import com.google.android.gms.ads.formats.NativeCustomTemplateAd;
+import com.google.android.gms.ads.formats.UnifiedNativeAd;
+import com.google.android.gms.ads.formats.UnifiedNativeAdView;
+import com.google.android.gms.ads.initialization.InitializationStatus;
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+
+import java.util.Locale;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link NativeAdvancedFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class NativeAdvancedFragment extends Fragment {
+
+    private static final String AD_MANAGER_AD_UNIT_ID = "/6499/example/native";
+    private static final String SIMPLE_TEMPLATE_ID = "10104090";
+
+    private NativeCustomTemplateAd nativeCustomTemplateAd;
+    private UnifiedNativeAd unifiedNativeAd;
+    private Button refresh;
+    private CheckBox requestNativeAds;
+    private CheckBox requestCustomTemplateAds;
+    private CheckBox startVideoAdsMuted;
+    private TextView videoStatus;
+    FrameLayout frameLayout;
+
+
+    // TODO: Rename parameter arguments, choose names that match
+    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+
+    // TODO: Rename and change types of parameters
+    private String mParam1;
+    private String mParam2;
+
+    public NativeAdvancedFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param param1 Parameter 1.
+     * @param param2 Parameter 2.
+     * @return A new instance of fragment NativeAdvancedFragment.
+     */
+    // TODO: Rename and change types and number of parameters
+    public static NativeAdvancedFragment newInstance(String param1, String param2) {
+        NativeAdvancedFragment fragment = new NativeAdvancedFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mParam1 = getArguments().getString(ARG_PARAM1);
+            mParam2 = getArguments().getString(ARG_PARAM2);
+        }
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        View view= inflater.inflate(R.layout.fragment_native_advanced, container, false);
+        MobileAds.initialize(
+                getContext(),
+                new OnInitializationCompleteListener() {
+                    @Override
+                    public void onInitializationComplete(InitializationStatus status) {}
+                });
+        frameLayout =view.findViewById(R.id.fl_adplaceholder);
+        refresh =view.findViewById(R.id.btn_refresh);
+        requestNativeAds =view.findViewById(R.id.cb_nativeads);
+        requestCustomTemplateAds = view.findViewById(R.id.cb_customtemplate);
+        startVideoAdsMuted = view.findViewById(R.id.cb_start_muted);
+        videoStatus = view.findViewById(R.id.tv_video_status);
+
+        refresh.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                refreshAd(requestNativeAds.isChecked(),
+                        requestCustomTemplateAds.isChecked());
+            }
+        });
+
+        refreshAd(true, true);
+        return view;
+    }
+    private void populateUnifiedNativeAdView(UnifiedNativeAd nativeAd, UnifiedNativeAdView adView) {
+        // Set the media view.
+        adView.setMediaView((MediaView) adView.findViewById(R.id.ad_media));
+
+        // Set other ad assets.
+        adView.setHeadlineView(adView.findViewById(R.id.ad_headline));
+        adView.setBodyView(adView.findViewById(R.id.ad_body));
+        adView.setCallToActionView(adView.findViewById(R.id.ad_call_to_action));
+        adView.setIconView(adView.findViewById(R.id.ad_app_icon));
+        adView.setPriceView(adView.findViewById(R.id.ad_price));
+        adView.setStarRatingView(adView.findViewById(R.id.ad_stars));
+        adView.setStoreView(adView.findViewById(R.id.ad_store));
+        adView.setAdvertiserView(adView.findViewById(R.id.ad_advertiser));
+
+        // The headline and mediaContent are guaranteed to be in every UnifiedNativeAd.
+        ((TextView) adView.getHeadlineView()).setText(nativeAd.getHeadline());
+        adView.getMediaView().setMediaContent(nativeAd.getMediaContent());
+
+        // These assets aren't guaranteed to be in every UnifiedNativeAd, so it's important to
+        // check before trying to display them.
+        if (nativeAd.getBody() == null) {
+            adView.getBodyView().setVisibility(View.INVISIBLE);
+        } else {
+            adView.getBodyView().setVisibility(View.VISIBLE);
+            ((TextView) adView.getBodyView()).setText(nativeAd.getBody());
+        }
+
+        if (nativeAd.getCallToAction() == null) {
+            adView.getCallToActionView().setVisibility(View.INVISIBLE);
+        } else {
+            adView.getCallToActionView().setVisibility(View.VISIBLE);
+            ((Button) adView.getCallToActionView()).setText(nativeAd.getCallToAction());
+        }
+
+        if (nativeAd.getIcon() == null) {
+            adView.getIconView().setVisibility(View.GONE);
+        } else {
+            ((ImageView) adView.getIconView()).setImageDrawable(
+                    nativeAd.getIcon().getDrawable());
+            adView.getIconView().setVisibility(View.VISIBLE);
+        }
+
+        if (nativeAd.getPrice() == null) {
+            adView.getPriceView().setVisibility(View.INVISIBLE);
+        } else {
+            adView.getPriceView().setVisibility(View.VISIBLE);
+            ((TextView) adView.getPriceView()).setText(nativeAd.getPrice());
+        }
+
+        if (nativeAd.getStore() == null) {
+            adView.getStoreView().setVisibility(View.INVISIBLE);
+        } else {
+            adView.getStoreView().setVisibility(View.VISIBLE);
+            ((TextView) adView.getStoreView()).setText(nativeAd.getStore());
+        }
+
+        if (nativeAd.getStarRating() == null) {
+            adView.getStarRatingView().setVisibility(View.INVISIBLE);
+        } else {
+            ((RatingBar) adView.getStarRatingView())
+                    .setRating(nativeAd.getStarRating().floatValue());
+            adView.getStarRatingView().setVisibility(View.VISIBLE);
+        }
+
+        if (nativeAd.getAdvertiser() == null) {
+            adView.getAdvertiserView().setVisibility(View.INVISIBLE);
+        } else {
+            ((TextView) adView.getAdvertiserView()).setText(nativeAd.getAdvertiser());
+            adView.getAdvertiserView().setVisibility(View.VISIBLE);
+        }
+
+        // This method tells the Google Mobile Ads SDK that you have finished populating your
+        // native ad view with this native ad.
+        adView.setNativeAd(nativeAd);
+
+        // Get the video controller for the ad. One will always be provided, even if the ad doesn't
+        // have a video asset.
+        VideoController vc = nativeAd.getVideoController();
+
+        // Updates the UI to say whether or not this ad has a video asset.
+        if (vc.hasVideoContent()) {
+            videoStatus.setText(String.format(Locale.getDefault(),
+                    "Video status: Ad contains a %.2f:1 video asset.",
+                    vc.getAspectRatio()));
+
+            // Create a new VideoLifecycleCallbacks object and pass it to the VideoController. The
+            // VideoController will call methods on this object when events occur in the video
+            // lifecycle.
+            vc.setVideoLifecycleCallbacks(new VideoController.VideoLifecycleCallbacks() {
+                @Override
+                public void onVideoEnd() {
+                    // Publishers should allow native ads to complete video playback before
+                    // refreshing or replacing them with another ad in the same UI location.
+                    refresh.setEnabled(true);
+                    videoStatus.setText("Video status: Video playback has ended.");
+                    super.onVideoEnd();
+                }
+            });
+        } else {
+            videoStatus.setText("Video status: Ad does not contain a video asset.");
+            refresh.setEnabled(true);
+        }
+    }
+
+    /**
+     * Populates a {@link View} object with data from a {@link NativeCustomTemplateAd}. This method
+     * handles a particular "simple" custom native ad format.
+     *
+     * @param nativeCustomTemplateAd the object containing the ad's assets
+     * @param adView                 the view to be populated
+     */
+    private void populateSimpleTemplateAdView(final NativeCustomTemplateAd nativeCustomTemplateAd,
+                                              View adView) {
+        TextView headline = adView.findViewById(R.id.simplecustom_headline);
+        TextView caption = adView.findViewById(R.id.simplecustom_caption);
+
+        headline.setText(nativeCustomTemplateAd.getText("Headline"));
+        caption.setText(nativeCustomTemplateAd.getText("Caption"));
+
+        FrameLayout mediaPlaceholder = adView.findViewById(R.id.simplecustom_media_placeholder);
+
+        // Get the video controller for the ad. One will always be provided, even if the ad doesn't
+        // have a video asset.
+        VideoController vc = nativeCustomTemplateAd.getVideoController();
+
+        // Apps can check the VideoController's hasVideoContent property to determine if the
+        // NativeCustomTemplateAd has a video asset.
+        if (vc.hasVideoContent()) {
+            mediaPlaceholder.addView(nativeCustomTemplateAd.getVideoMediaView());
+            videoStatus.setText(String.format(Locale.getDefault(),
+                    "Video status: Ad contains a %.2f:1 video asset.",
+                    vc.getAspectRatio()));
+
+            // Create a new VideoLifecycleCallbacks object and pass it to the VideoController. The
+            // VideoController will call methods on this object when events occur in the video
+            // lifecycle.
+            vc.setVideoLifecycleCallbacks(new VideoController.VideoLifecycleCallbacks() {
+                public void onVideoEnd() {
+                    // Publishers should allow native ads to complete video playback before
+                    // refreshing or replacing them with another ad in the same UI location.
+                    refresh.setEnabled(true);
+                    videoStatus.setText("Video status: Video playback has ended.");
+                    super.onVideoEnd();
+                }
+            });
+        } else {
+            ImageView mainImage = new ImageView(getContext());
+            mainImage.setAdjustViewBounds(true);
+            mainImage.setImageDrawable(nativeCustomTemplateAd.getImage("MainImage").getDrawable());
+
+            mainImage.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    nativeCustomTemplateAd.performClick("MainImage");
+                }
+            });
+            mediaPlaceholder.addView(mainImage);
+            refresh.setEnabled(true);
+            videoStatus.setText("Video status: Ad does not contain a video asset.");
+        }
+    }
+
+    /**
+     * Creates a request for a new native ad based on the boolean parameters and calls the
+     * corresponding "populate" method when one is successfully returned.
+     *
+     * @param requestUnifiedNativeAds  indicates whether unified native ads should be requested
+     * @param requestCustomTemplateAds indicates whether custom template ads should be requested
+     */
+    private void refreshAd(boolean requestUnifiedNativeAds,
+                           boolean requestCustomTemplateAds) {
+        if (!requestUnifiedNativeAds && !requestCustomTemplateAds) {
+            Toast.makeText(getContext(), "At least one ad format must be checked to request an ad.",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        refresh.setEnabled(false);
+
+        AdLoader.Builder builder = new AdLoader.Builder(getContext(), AD_MANAGER_AD_UNIT_ID);
+
+        if (requestUnifiedNativeAds) {
+            builder.forUnifiedNativeAd(
+                    new UnifiedNativeAd.OnUnifiedNativeAdLoadedListener() {
+                        @Override
+                        public void onUnifiedNativeAdLoaded(UnifiedNativeAd unifiedNativeAd) {
+                            // If this callback occurs after the activity is destroyed, you must call
+                            // destroy and return or you may get a memory leak.
+                            boolean isDestroyed = false;
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                                isDestroyed = getActivity().isDestroyed();
+                            }
+                            if (isDestroyed || getActivity().isFinishing() ||getActivity(). isChangingConfigurations()) {
+                                unifiedNativeAd.destroy();
+                                return;
+                            }
+                            // You must call destroy on old ads when you are done with them,
+                            // otherwise you will have a memory leak.
+//                            if (getContext().unifiedNativeAd != null) {
+//                                MainActivity.this.unifiedNativeAd.destroy();
+//                            }
+//                            MainActivity.this.unifiedNativeAd = unifiedNativeAd;
+//
+                            UnifiedNativeAdView adView =
+                                    (UnifiedNativeAdView) getLayoutInflater()
+                                            .inflate(R.layout.ad_unified, null);
+                            populateUnifiedNativeAdView(unifiedNativeAd, adView);
+                            frameLayout.removeAllViews();
+                            frameLayout.addView(adView);
+                        }
+                    });
+        }
+
+        if (requestCustomTemplateAds) {
+            builder.forCustomTemplateAd(
+                    SIMPLE_TEMPLATE_ID,
+                    new NativeCustomTemplateAd.OnCustomTemplateAdLoadedListener() {
+                        @Override
+                        public void onCustomTemplateAdLoaded(NativeCustomTemplateAd ad) {
+                            // If this callback occurs after the activity is destroyed, you must call
+                            // destroy and return or you may get a memory leak.
+                            boolean isDestroyed = false;
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                                isDestroyed = getActivity().isDestroyed();
+                            }
+                            if (isDestroyed ||getActivity(). isFinishing() ||getActivity(). isChangingConfigurations()) {
+                                ad.destroy();
+                                return;
+                            }
+                            // You must call destroy on old ads when you are done with them,
+                            // otherwise you will have a memory leak.
+                            if (nativeCustomTemplateAd != null) {
+                                nativeCustomTemplateAd.destroy();
+                            }
+                            nativeCustomTemplateAd = ad;
+
+                            View adView =
+                                    getLayoutInflater().inflate(R.layout.ad_simple_custom_template, null);
+                            populateSimpleTemplateAdView(ad, adView);
+                            frameLayout.removeAllViews();
+                            frameLayout.addView(adView);
+                        }
+                    },
+                    new NativeCustomTemplateAd.OnCustomClickListener() {
+                        @Override
+                        public void onCustomClick(NativeCustomTemplateAd ad, String s) {
+                            Toast.makeText(
+                                    getContext(),
+                                    "A custom click has occurred in the simple template",
+                                    Toast.LENGTH_SHORT)
+                                    .show();
+                        }
+                    });
+        }
+
+        VideoOptions videoOptions =
+                new VideoOptions.Builder().setStartMuted(startVideoAdsMuted.isChecked()).build();
+
+        NativeAdOptions adOptions =
+                new NativeAdOptions.Builder().setVideoOptions(videoOptions).build();
+
+        builder.withNativeAdOptions(adOptions);
+
+        AdLoader adLoader =
+                builder
+                        .withAdListener(
+                                new AdListener() {
+                                    @Override
+                                    public void onAdFailedToLoad(LoadAdError loadAdError) {
+                                        refresh.setEnabled(true);
+                                        String error =
+                                                String.format(
+                                                        "domain: %s, code: %d, message: %s",
+                                                        loadAdError.getDomain(),
+                                                        loadAdError.getCode(),
+                                                        loadAdError.getMessage());
+                                        Toast.makeText(
+                                                getContext(),
+                                                "Failed to load native ad: " + error,
+                                                Toast.LENGTH_SHORT)
+                                                .show();
+                                    }
+                                })
+                        .build();
+
+        adLoader.loadAd(new PublisherAdRequest.Builder().build());
+
+        videoStatus.setText("");
+    }
+
+    @Override
+    public void onDestroy() {
+        if (unifiedNativeAd != null) {
+            unifiedNativeAd.destroy();
+        }
+        if (nativeCustomTemplateAd != null) {
+            nativeCustomTemplateAd.destroy();
+        }
+        super.onDestroy();
+    }
+}
